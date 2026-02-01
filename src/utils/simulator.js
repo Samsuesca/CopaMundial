@@ -179,15 +179,6 @@ export const generateKnockoutBracket = (groups, standings, existingMatches = [])
     const thirdPlaceAssignments = assignThirdPlaceTeams(best8Thirds, thirdPlaceSlots);
 
     // 5. Generate Matches for all rounds
-    const rounds = [
-        { id: 'R32', name: 'Round of 32', count: 16 },
-        { id: 'R16', name: 'Round of 16', count: 8 },
-        { id: 'QF', name: 'Quarter Finals', count: 4 },
-        { id: 'SF', name: 'Semi Finals', count: 2 },
-        { id: 'F', name: 'Final', count: 1 },
-        { id: '3P', name: '3rd Place', count: 1 },
-    ];
-
     const matches = [];
 
     // Helper to get or create match
