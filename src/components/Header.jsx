@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Users, Swords, BarChart3, Menu, X } from 'lucide-react';
+import { Trophy, Users, Swords, BarChart3, Menu, X, Radio } from 'lucide-react';
 import { useState } from 'react';
 
 const Header = ({ activeTab, onTabChange, stats }) => {
@@ -10,6 +10,7 @@ const Header = ({ activeTab, onTabChange, stats }) => {
     { id: 'groups', label: 'Groups', icon: Trophy },
     { id: 'knockout', label: 'Knockout', icon: Swords },
     { id: 'stats', label: 'Stats', icon: BarChart3 },
+    { id: 'stream', label: 'Stream', icon: Radio, special: true },
   ];
 
   const handleTabChange = (tab) => {
@@ -48,17 +49,22 @@ const Header = ({ activeTab, onTabChange, stats }) => {
           <nav className="hidden md:flex gap-1 bg-[#00204C] p-1 rounded-lg border border-white/10">
             {tabs.map(tab => {
               const Icon = tab.icon;
+              const isStream = tab.special;
               return (
                 <button
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold uppercase transition-all ${
                     activeTab === tab.id
-                      ? 'bg-[#00FF85] text-[#00204C] shadow-[0_0_15px_rgba(0,255,133,0.3)]'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      ? isStream
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                        : 'bg-[#00FF85] text-[#00204C] shadow-[0_0_15px_rgba(0,255,133,0.3)]'
+                      : isStream
+                        ? 'text-purple-400 hover:text-pink-400 hover:bg-purple-500/10'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className={`w-4 h-4 ${isStream && activeTab !== tab.id ? 'animate-pulse' : ''}`} />
                   {tab.label}
                   {tab.id === 'groups' && stats.completedGroupMatches > 0 && (
                     <span className={`text-[10px] ${activeTab === tab.id ? 'text-[#00204C]/70' : 'text-gray-500'}`}>
@@ -85,17 +91,22 @@ const Header = ({ activeTab, onTabChange, stats }) => {
             <div className="grid grid-cols-2 gap-2">
               {tabs.map(tab => {
                 const Icon = tab.icon;
+                const isStream = tab.special;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold uppercase transition-all ${
                       activeTab === tab.id
-                        ? 'bg-[#00FF85] text-[#00204C] shadow-[0_0_15px_rgba(0,255,133,0.3)]'
-                        : 'bg-[#00204C] text-gray-400 hover:text-white border border-white/10'
+                        ? isStream
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                          : 'bg-[#00FF85] text-[#00204C] shadow-[0_0_15px_rgba(0,255,133,0.3)]'
+                        : isStream
+                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                          : 'bg-[#00204C] text-gray-400 hover:text-white border border-white/10'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className={`w-4 h-4 ${isStream && activeTab !== tab.id ? 'animate-pulse' : ''}`} />
                     {tab.label}
                   </button>
                 );
