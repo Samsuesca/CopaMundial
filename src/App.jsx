@@ -1,170 +1,178 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { INITIAL_GROUPS } from './data/groups';
-import { TEAMS } from './data/teams';
+import React, { useState } from 'react';
+import { SimulationProvider, useSimulation } from './context/SimulationContext';
 import PlayoffSimulator from './components/PlayoffSimulator';
 import GroupStage from './components/GroupStage';
 import KnockoutBracket from './components/KnockoutBracket';
-import { calculateStandings, generateGroupMatches, generateKnockoutBracket } from './utils/simulator';
-import { Trophy } from 'lucide-react';
+import Statistics from './components/Statistics';
+import Header from './components/Header';
+import SaveLoadPanel from './components/SaveLoadPanel';
+import StreamerControls from './components/streaming/StreamerControls';
+import ChatPredictions from './components/streaming/ChatPredictions';
+import CompactWidget from './components/streaming/CompactWidget';
 
-function App() {
-  const [selectedWinners, setSelectedWinners] = useState({});
-  const [groupMatches, setGroupMatches] = useState([]);
-  const [knockoutMatches, setKnockoutMatches] = useState([]);
-  const [activeTab, setActiveTab] = useState('playoffs'); // playoffs, groups, knockout
+function AppContent() {
+  const { state, actions, activeGroups, standings, teams, stats } = useSimulation();
+  const [selectedStreamMatch, setSelectedStreamMatch] = useState(null);
 
-  // 1. Resolve Teams
-  const activeGroups = useMemo(() => {
-    return INITIAL_GROUPS.map(group => ({
-      ...group,
-      teams: group.teams.map(teamId => {
-        if (teamId.startsWith('PLAYOFF_')) {
-          const key = teamId.replace('PLAYOFF_', '');
-          return selectedWinners[key] || teamId;
-        }
-        return teamId;
-      })
-    }));
-  }, [selectedWinners]);
-
-  // 2. Initialize Group Matches
-  useEffect(() => {
-    if (groupMatches.length === 0) {
-      setGroupMatches(generateGroupMatches(activeGroups));
-    } else {
-      setGroupMatches(prev => {
-        const newMatches = generateGroupMatches(activeGroups);
-        return newMatches.map(nm => {
-          const existing = prev.find(pm => pm.id === nm.id);
-          return existing ? { ...existing, home: nm.home, away: nm.away } : nm;
-        });
-      });
-    }
-  }, [activeGroups]);
-
-  // 3. Calculate Standings
-  const standings = useMemo(() => {
-    const newStandings = {};
-    activeGroups.forEach(group => {
-      const matches = groupMatches.filter(m => m.group === group.id);
-      newStandings[group.id] = calculateStandings(matches, group.teams);
-    });
-    return newStandings;
-  }, [groupMatches, activeGroups]);
-
-  // 4. Generate/Update Bracket
-  useEffect(() => {
-    const { matches } = generateKnockoutBracket(activeGroups, standings, knockoutMatches);
-    // Only update if changes to avoid loops, but since generateKnockoutBracket returns new objects, 
-    // we need to be careful. For now, we update on standings change.
-    // To preserve scores, we pass existing knockoutMatches to the generator.
-    setKnockoutMatches(matches);
-  }, [standings]);
-
-  const handleGroupMatchUpdate = (id, field, value) => {
-    setGroupMatches(prev => prev.map(m => {
-      if (m.id === id) {
-        const updated = { ...m, [field]: value === '' ? null : parseInt(value) };
-        updated.finished = updated.homeScore !== null && updated.awayScore !== null;
-        return updated;
-      }
-      return m;
-    }));
-  };
-
-  const handleKnockoutMatchUpdate = (id, field, value) => {
-    setKnockoutMatches(prev => {
-      const updatedMatches = prev.map(m => {
-        if (m.id === id) {
-          const updated = { ...m, [field]: value === '' ? null : parseInt(value) };
-          // Determine winner
-          if (updated.homeScore !== null && updated.awayScore !== null) {
-            if (updated.homeScore > updated.awayScore) updated.winner = updated.home;
-            else if (updated.awayScore > updated.homeScore) updated.winner = updated.away;
-            else updated.winner = null; // Draw not allowed in knockout, user must decide (penalties logic could be added)
-          } else {
-            updated.winner = null;
-          }
-          return updated;
-        }
-        return m;
-      });
-
-      // Re-run generator to propagate winners
-      const { matches } = generateKnockoutBracket(activeGroups, standings, updatedMatches);
-      return matches;
-    });
-  };
-
-  const handleWinnerSelect = (pathKey, teamId) => {
-    setSelectedWinners(prev => ({ ...prev, [pathKey]: teamId }));
+  // Get the first knockout match with teams for streaming demo
+  const getFirstKnockoutMatch = () => {
+    const match = state.knockoutMatches.find(m => m.home && m.away);
+    return match || state.knockoutMatches[0];
   };
 
   return (
     <div className="min-h-screen bg-[#00204C] text-white font-sans selection:bg-[#00FF85] selection:text-[#00204C]">
-      {/* Header */}
-      <header className="bg-[#001533] border-b border-[#00FF85]/20">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Trophy className="w-8 h-8 text-[#00FF85]" />
-            <div>
-              <h1 className="text-2xl font-black tracking-tighter uppercase italic">
-                World Cup <span className="text-[#00FF85]">2026</span>
-              </h1>
-              <p className="text-xs text-gray-400 tracking-widest uppercase">Simulator</p>
-            </div>
-          </div>
+      <Header
+        activeTab={state.activeTab}
+        onTabChange={actions.setActiveTab}
+        stats={stats}
+      />
 
-          <nav className="flex gap-1 bg-[#00204C] p-1 rounded-lg border border-white/10">
-            {['playoffs', 'groups', 'knockout'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-md text-sm font-bold uppercase transition-all ${activeTab === tab
-                    ? 'bg-[#00FF85] text-[#00204C] shadow-[0_0_15px_rgba(0,255,133,0.3)]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
+      <main className="max-w-[1600px] mx-auto p-4 md:p-6">
+        {/* Save/Load Panel */}
+        <SaveLoadPanel />
 
-      <main className="max-w-[1600px] mx-auto p-6">
-        {activeTab === 'playoffs' && (
+        {state.activeTab === 'playoffs' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <PlayoffSimulator
-              onWinnerSelect={handleWinnerSelect}
-              selectedWinners={selectedWinners}
+              onWinnerSelect={actions.setPlayoffWinner}
+              selectedWinners={state.selectedWinners}
             />
           </div>
         )}
 
-        {activeTab === 'groups' && (
+        {state.activeTab === 'groups' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <GroupStage
               groups={activeGroups}
-              matches={groupMatches}
-              teams={TEAMS}
+              matches={state.groupMatches}
+              teams={teams}
               standings={standings}
-              onMatchUpdate={handleGroupMatchUpdate}
+              onMatchUpdate={actions.updateGroupMatch}
             />
           </div>
         )}
 
-        {activeTab === 'knockout' && (
+        {state.activeTab === 'knockout' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <KnockoutBracket
-              matches={knockoutMatches}
-              teams={TEAMS}
-              onMatchUpdate={handleKnockoutMatchUpdate}
+              matches={state.knockoutMatches}
+              teams={teams}
+              onMatchUpdate={actions.updateKnockoutMatch}
+              onPenaltyWinner={actions.setPenaltyWinner}
             />
           </div>
         )}
+
+        {state.activeTab === 'stats' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Statistics />
+          </div>
+        )}
+
+        {state.activeTab === 'stream' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+            {/* Header */}
+            <div className="text-center">
+              <h2 className="text-2xl md:text-3xl font-black text-white italic uppercase tracking-tighter">
+                Modo <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Streamer</span>
+              </h2>
+              <p className="text-gray-400 mt-2 text-sm md:text-base">
+                Herramientas y widgets para tu stream de Kick
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Streamer Controls */}
+              <StreamerControls
+                matches={state.knockoutMatches}
+                teams={teams}
+                currentMatch={selectedStreamMatch || getFirstKnockoutMatch()}
+                onSelectMatch={setSelectedStreamMatch}
+              />
+
+              {/* Chat Predictions */}
+              <ChatPredictions
+                match={selectedStreamMatch || getFirstKnockoutMatch()}
+                teams={teams}
+              />
+            </div>
+
+            {/* Widget Previews */}
+            <div className="bg-[#001533] rounded-xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-4">Vista Previa de Widgets</h3>
+              <p className="text-gray-400 text-sm mb-6">
+                Estos widgets se pueden usar como Browser Source en OBS. Selecciona un partido arriba para previsualizarlo.
+              </p>
+
+              <div className="space-y-6">
+                {/* Minimal Widget */}
+                <div>
+                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-2">Widget Minimalista (800x60)</h4>
+                  <div className="bg-transparent p-4 rounded-lg border border-dashed border-gray-600">
+                    <CompactWidget
+                      match={selectedStreamMatch || getFirstKnockoutMatch()}
+                      teams={teams}
+                      style="minimal"
+                    />
+                  </div>
+                </div>
+
+                {/* Vertical Widget */}
+                <div>
+                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-2">Widget Vertical (200x180)</h4>
+                  <div className="bg-transparent p-4 rounded-lg border border-dashed border-gray-600 inline-block">
+                    <CompactWidget
+                      match={selectedStreamMatch || getFirstKnockoutMatch()}
+                      teams={teams}
+                      style="vertical"
+                    />
+                  </div>
+                </div>
+
+                {/* Horizontal Bar Widget */}
+                <div>
+                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-2">Widget Barra Horizontal (800x120)</h4>
+                  <div className="bg-transparent p-4 rounded-lg border border-dashed border-gray-600 max-w-2xl">
+                    <CompactWidget
+                      match={selectedStreamMatch || getFirstKnockoutMatch()}
+                      teams={teams}
+                      style="bar"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-[#001533] rounded-xl p-4 border border-white/5">
+              <h4 className="text-sm font-bold text-gray-400 mb-2">Como usar en OBS/Kick:</h4>
+              <ul className="text-xs text-gray-500 space-y-1">
+                <li>1. Abre OBS y agrega una nueva fuente "Browser"</li>
+                <li>2. Copia la URL del widget desde el panel de controles</li>
+                <li>3. Configura el tamaño segun el widget (800x60, 200x180, etc.)</li>
+                <li>4. Activa "Shutdown source when not visible" para mejor rendimiento</li>
+                <li>5. Usa los botones de celebracion durante el stream para efectos especiales</li>
+              </ul>
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 mt-12 py-6 text-center text-gray-500 text-sm">
+        <p>World Cup 2026 Simulator - Built with React + Tailwind CSS</p>
+        <p className="mt-1 text-xs">Data auto-saves to your browser</p>
+      </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <SimulationProvider>
+      <AppContent />
+    </SimulationProvider>
   );
 }
 
