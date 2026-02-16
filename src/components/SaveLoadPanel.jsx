@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useSimulation } from '../context/SimulationContext';
-import { Save, FolderOpen, Trash2, RotateCcw, Download, Upload, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, FolderOpen, Trash2, RotateCcw, Download, Upload, Check, X, ChevronDown, ChevronUp, Share2, FileDown, GitCompare } from 'lucide-react';
 
-const SaveLoadPanel = () => {
+const SaveLoadPanel = ({ onShowShare, onShowExport, onShowCompare }) => {
   const { state, actions } = useSimulation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -134,6 +134,32 @@ const SaveLoadPanel = () => {
                   className="hidden"
                 />
               </label>
+
+              <button
+                onClick={onShowShare}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-lg text-sm font-medium hover:bg-blue-500/20 transition-colors"
+              >
+                <Share2 className="w-4 h-4" />
+                Compartir
+              </button>
+
+              <button
+                onClick={onShowExport}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 text-purple-400 border border-purple-500/30 rounded-lg text-sm font-medium hover:bg-purple-500/20 transition-colors"
+              >
+                <FileDown className="w-4 h-4" />
+                Exportar
+              </button>
+
+              {state.savedSimulations.length >= 2 && (
+                <button
+                  onClick={onShowCompare}
+                  className="flex items-center gap-2 px-4 py-2 bg-teal-500/10 text-teal-400 border border-teal-500/30 rounded-lg text-sm font-medium hover:bg-teal-500/20 transition-colors"
+                >
+                  <GitCompare className="w-4 h-4" />
+                  Comparar
+                </button>
+              )}
 
               <button
                 onClick={() => setShowResetConfirm(true)}

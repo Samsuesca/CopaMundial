@@ -5,21 +5,58 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* Custom colors */
+  /* Custom colors - defaults (dark theme) */
   --color-primary: #00FF85;
   --color-primary-dark: #00CC6A;
   --color-bg-dark: #00204C;
   --color-bg-darker: #001533;
   --color-bg-darkest: #000F24;
+  --color-text: rgba(255, 255, 255, 0.87);
+  --color-text-secondary: #9CA3AF;
 
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
+  color: var(--color-text);
   background-color: var(--color-bg-dark);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #E2E8F0;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #00CC6A;
+}
+
+/* Accessibility - reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 * {

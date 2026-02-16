@@ -1,0 +1,19 @@
+{
+  "name": "World Cup 2026 Simulator",
+  "short_name": "WC2026 Sim",
+  "description": "Interactive FIFA World Cup 2026 Tournament Simulator",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#00204C",
+  "theme_color": "#00FF85",
+  "orientation": "any",
+  "categories": ["sports", "games"],
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
