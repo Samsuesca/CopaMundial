@@ -23,6 +23,9 @@ import BracketChallenge from './components/BracketChallenge';
 import StreamerControls from './components/streaming/StreamerControls';
 import ChatPredictions from './components/streaming/ChatPredictions';
 import CompactWidget from './components/streaming/CompactWidget';
+import BroadcastOverlay from './components/broadcast/BroadcastOverlay';
+import MatchCardOBS from './components/broadcast/MatchCardOBS';
+import { useBroadcastTrigger } from './hooks/useBroadcastTrigger';
 
 function AppContent() {
   const { state, actions, activeGroups, standings, teams, stats } = useSimulation();
@@ -53,6 +56,17 @@ function AppContent() {
     const match = state.knockoutMatches.find(m => m.home && m.away);
     return match || state.knockoutMatches[0];
   };
+
+  const currentStreamMatch = selectedStreamMatch || getFirstKnockoutMatch();
+  const homeTeam = teams.find(t => t.id === currentStreamMatch?.home);
+  const awayTeam = teams.find(t => t.id === currentStreamMatch?.away);
+
+  // Broadcast overlays: auto-trigger en champion/upset + atajos G/V/U
+  const { overlay: broadcastOverlay, dismiss: dismissBroadcast } = useBroadcastTrigger({
+    stats,
+    teams,
+    currentMatch: currentStreamMatch,
+  });
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-dark)] text-[var(--color-text)] font-sans selection:bg-[var(--color-primary)] selection:text-[var(--color-bg-dark)]">
@@ -158,9 +172,60 @@ function AppContent() {
                 />
               </div>
 
+              {/* Modo Broadcast — widgets OBS rediseñados */}
+              <div className="rounded-xl p-6 border" style={{ background: 'var(--bc-bg-surface)', borderColor: 'var(--bc-brand)', boxShadow: 'var(--bc-shadow-glow)' }}>
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div>
+                    <h3 className="bc-display text-white" style={{ fontSize: '24px', letterSpacing: '0.12em' }}>
+                      Modo Broadcast
+                      <span className="ml-2 align-middle bc-display rounded px-2 py-0.5" style={{ background: 'var(--bc-brand)', color: 'var(--bc-bg-deep)', fontSize: '11px', letterSpacing: '0.18em' }}>
+                        Nuevo
+                      </span>
+                    </h3>
+                    <p className="text-sm mt-1" style={{ color: 'var(--bc-fg-muted)' }}>
+                      Widgets stream-grade con tipografía broadcast, códigos FIFA correctos y nombres completos.
+                      Atajos: <kbd className="bc-mono px-1.5 py-0.5 rounded text-xs" style={{ background: 'rgba(255,255,255,0.08)' }}>G</kbd> Gol ·
+                      <kbd className="bc-mono px-1.5 py-0.5 rounded text-xs ml-1" style={{ background: 'rgba(255,255,255,0.08)' }}>V</kbd> Victoria ·
+                      <kbd className="bc-mono px-1.5 py-0.5 rounded text-xs ml-1" style={{ background: 'rgba(255,255,255,0.08)' }}>U</kbd> Upset
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-5">
+                  <div>
+                    <h4 className="bc-display mb-2" style={{ color: 'var(--bc-fg-subtle)', fontSize: '11px', letterSpacing: '0.18em' }}>Bar · 1920×140 — Overlay top/bottom</h4>
+                    <div className="rounded-lg border border-dashed p-2" style={{ borderColor: 'var(--bc-border)' }}>
+                      <MatchCardOBS match={currentStreamMatch || {}} homeTeam={homeTeam} awayTeam={awayTeam} variant="bar" isLive={false} />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="bc-display mb-2" style={{ color: 'var(--bc-fg-subtle)', fontSize: '11px', letterSpacing: '0.18em' }}>Pill · 640×80 — Overlay esquina</h4>
+                    <div className="rounded-lg border border-dashed p-2 inline-block" style={{ borderColor: 'var(--bc-border)' }}>
+                      <MatchCardOBS match={currentStreamMatch || {}} homeTeam={homeTeam} awayTeam={awayTeam} variant="pill" isLive={false} />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="bc-display mb-2" style={{ color: 'var(--bc-fg-subtle)', fontSize: '11px', letterSpacing: '0.18em' }}>Card · 380×280 — Overlay vertical</h4>
+                    <div className="rounded-lg border border-dashed p-2 inline-block" style={{ borderColor: 'var(--bc-border)' }}>
+                      <MatchCardOBS
+                        match={currentStreamMatch || {}}
+                        homeTeam={homeTeam}
+                        awayTeam={awayTeam}
+                        variant="card"
+                        isLive={false}
+                        roundLabel={currentStreamMatch?.id?.startsWith('R32') ? 'Dieciseisavos' :
+                                    currentStreamMatch?.id?.startsWith('R16') ? 'Octavos' :
+                                    currentStreamMatch?.id?.startsWith('QF') ? 'Cuartos' :
+                                    currentStreamMatch?.id?.startsWith('SF') ? 'Semifinales' :
+                                    currentStreamMatch?.id === 'Final' ? 'Final' : ''}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-[var(--color-bg-darker)] rounded-xl p-6 border border-white/10">
-                <h3 className="text-lg font-bold text-white mb-4">Vista Previa de Widgets</h3>
-                <p className="text-gray-400 text-sm mb-6">Estos widgets se pueden usar como Browser Source en OBS.</p>
+                <h3 className="text-lg font-bold text-white mb-4">Vista Previa de Widgets (Legacy)</h3>
+                <p className="text-gray-400 text-sm mb-6">Versión original — se mantiene durante la migración.</p>
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-2">Widget Minimalista (800x60)</h4>
@@ -220,6 +285,18 @@ function AppContent() {
       {showExport && <ExportPanel state={state} standings={standings} stats={stats} onClose={() => setShowExport(false)} />}
       {showCompare && <CompareSimulations savedSimulations={state.savedSimulations} onClose={() => setShowCompare(false)} />}
       {achievementToast && <AchievementToast achievement={achievementToast} onClose={clearToast} />}
+
+      {/* Broadcast overlay: champion auto, upset auto, manual via G/V/U */}
+      {broadcastOverlay && (
+        <BroadcastOverlay
+          key={broadcastOverlay.key}
+          type={broadcastOverlay.type}
+          team={broadcastOverlay.team}
+          subtitle={broadcastOverlay.subtitle}
+          duration={broadcastOverlay.duration}
+          onClose={dismissBroadcast}
+        />
+      )}
     </div>
   );
 }
