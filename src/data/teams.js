@@ -97,3 +97,62 @@ export const PLAYOFF_PATHS = {
     IC_1: { name: "Intercontinental 1", candidates: ["JAM", "NCL", "COD"] },
     IC_2: { name: "Intercontinental 2", candidates: ["BOL", "SUR", "IRQ"] },
 };
+
+// Resultados oficiales de los repechajes — Marzo 2026
+// Sources: UEFA.com, FIFA.com, Wikipedia "2026 FIFA World Cup qualification"
+export const REAL_PLAYOFF_RESULTS = {
+    UEFA_A: {
+        winner: "BIH",
+        date: "Marzo 2026",
+        semifinals: [
+            { home: "ITA", away: "NIR", homeScore: 2, awayScore: 0 },
+            { home: "WAL", away: "BIH", homeScore: 1, awayScore: 1, penalties: { home: 2, away: 4, winner: "BIH" } },
+        ],
+        final: { home: "BIH", away: "ITA", homeScore: 1, awayScore: 1, aet: true, penalties: { home: 4, away: 1, winner: "BIH" } },
+        note: "Italia queda fuera de su tercer Mundial consecutivo. Bosnia regresa al Mundial por primera vez desde 2014.",
+    },
+    UEFA_B: {
+        winner: "SWE",
+        date: "Marzo 2026",
+        semifinals: [
+            { home: "UKR", away: "SWE", homeScore: 1, awayScore: 3 },
+            { home: "POL", away: "ALB", homeScore: 2, awayScore: 1 },
+        ],
+        final: { home: "SWE", away: "POL", homeScore: 3, awayScore: 2 },
+    },
+    UEFA_C: {
+        winner: "TUR",
+        date: "Marzo 2026",
+        semifinals: [
+            { home: "TUR", away: "ROU", homeScore: 1, awayScore: 0 },
+            { home: "KOS", away: "SVK", homeScore: 4, awayScore: 3 },
+        ],
+        final: { home: "TUR", away: "KOS", homeScore: 1, awayScore: 0 },
+    },
+    UEFA_D: {
+        winner: "CZE",
+        date: "Marzo 2026",
+        semifinals: [
+            { home: "DEN", away: "MKD", homeScore: 4, awayScore: 0 },
+            { home: "CZE", away: "IRL", homeScore: 2, awayScore: 2, penalties: { home: 4, away: 3, winner: "CZE" } },
+        ],
+        final: { home: "CZE", away: "DEN", homeScore: 2, awayScore: 2, aet: true, penalties: { home: 3, away: 1, winner: "CZE" } },
+    },
+    // En IC paths el cabeza de serie (COD, IRQ) entra directo a la final
+    IC_1: {
+        winner: "COD",
+        date: "Marzo 2026",
+        semifinals: [
+            { home: "JAM", away: "NCL", homeScore: 1, awayScore: 0 },
+        ],
+        final: { home: "COD", away: "JAM", homeScore: 1, awayScore: 0 },
+    },
+    IC_2: {
+        winner: "IRQ",
+        date: "Marzo/Abril 2026",
+        semifinals: [
+            { home: "BOL", away: "SUR", homeScore: 2, awayScore: 1 },
+        ],
+        final: { home: "IRQ", away: "BOL", homeScore: 2, awayScore: 1 },
+    },
+};
