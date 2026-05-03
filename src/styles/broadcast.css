@@ -1,0 +1,247 @@
+/*
+ * BROADCAST DESIGN SYSTEM
+ *
+ * Tokens optimizados para uso en stream (Kick/Twitch H.264 6Mbps a 1080p).
+ * Importar después de tailwindcss en index.css.
+ *
+ * Filosofía:
+ *  - Lectura a 5m de TV → tipografías condensed con peso 700+
+ *  - Compresión H.264 → bg deltas mínimo 8 puntos de luminosidad
+ *  - WCAG AAA en muted text → grays con tinte azul, no neutral
+ *  - "Momento" dramático → easing curves de stage entrance, no UI estándar
+ */
+
+/* === Fuentes broadcast === */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+/* === Design tokens broadcast === */
+:root {
+  /* Color: H264-resistant palette — deltas amplios entre superficies */
+  --bc-bg-deep:       #00112A;   /* Fondo más profundo que el original navy */
+  --bc-bg-surface:    #0A2546;   /* Cards: delta de 12 puntos de luminosidad */
+  --bc-bg-elevated:   #143560;   /* Modales, popovers */
+  --bc-bg-overlay:    rgba(0, 17, 42, 0.92);
+
+  /* Brand */
+  --bc-brand:         #00FF85;
+  --bc-brand-hover:   #00CC6A;
+  --bc-brand-glow:    rgba(0, 255, 133, 0.55);
+
+  /* Acentos broadcast */
+  --bc-gold:          #FFB800;          /* Más saturado que yellow-500: sobrevive H264 */
+  --bc-gold-glow:     rgba(255, 184, 0, 0.5);
+  --bc-red:           #FF2E4D;          /* Live indicator + upsets */
+  --bc-red-glow:      rgba(255, 46, 77, 0.5);
+  --bc-purple:        #B556FF;          /* Stream mode acento */
+
+  /* Foreground — grays con tinte azul para AAA sobre navy */
+  --bc-fg:            #FFFFFF;
+  --bc-fg-muted:      #B8C5D6;          /* Sube de #9CA3AF: pasa AAA en bg-deep */
+  --bc-fg-subtle:     #5A6B82;
+  --bc-fg-broadcast:  #FFFFFF;          /* Texto sobre brand bg */
+
+  /* Bordes */
+  --bc-border:        rgba(255, 255, 255, 0.12);
+  --bc-border-strong: rgba(255, 255, 255, 0.24);
+
+  /* Tipografía */
+  --bc-font-display:  'Bebas Neue', 'Anton', 'Impact', sans-serif;
+  --bc-font-body:     'Inter', system-ui, -apple-system, sans-serif;
+  --bc-font-mono:     'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Tamaños broadcast — mínimo 14px, hero hasta 96px */
+  --bc-text-meta:     12px;     /* SOLO para chips/tags marginales, NUNCA para nombres de equipo */
+  --bc-text-base:     14px;
+  --bc-text-md:       16px;
+  --bc-text-lg:       20px;
+  --bc-text-xl:       28px;
+  --bc-text-2xl:      40px;     /* Country names en match cards */
+  --bc-text-score:    72px;     /* Scores en match cards */
+  --bc-text-hero:     96px;     /* Champion screen */
+
+  /* Geometría — Sharp + diagonal accent */
+  --bc-radius-sm:     4px;
+  --bc-radius-md:     8px;
+  --bc-radius-lg:     12px;
+
+  /* Sombras con color de marca, no negro */
+  --bc-shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.3);
+  --bc-shadow-md:     0 4px 16px rgba(0, 0, 0, 0.4);
+  --bc-shadow-glow:   0 0 24px var(--bc-brand-glow);
+  --bc-shadow-gold:   0 0 24px var(--bc-gold-glow);
+  --bc-shadow-red:    0 0 24px var(--bc-red-glow);
+
+  /* Movimiento — easing curves coherentes */
+  --bc-ease-in:       cubic-bezier(0.4, 0, 1, 0.5);
+  --bc-ease-out:      cubic-bezier(0, 0.5, 0.4, 1);
+  --bc-ease-bounce:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bc-ease-stage:    cubic-bezier(0.16, 1, 0.3, 1);
+
+  --bc-dur-instant:   80ms;
+  --bc-dur-fast:      150ms;
+  --bc-dur-base:      250ms;
+  --bc-dur-stage:     400ms;
+  --bc-dur-broadcast: 800ms;
+}
+
+/* === Utilidades broadcast === */
+.bc-display {
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.bc-mono {
+  font-family: var(--bc-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.bc-score {
+  font-family: var(--bc-font-mono);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* Diagonal clip — referente broadcast tipo FIFA/ESPN graphics */
+.bc-diagonal {
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+.bc-diagonal-reverse {
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* === Animaciones broadcast === */
+
+/* Goal explosion — 800ms con bounce */
+@keyframes bc-goal-burst {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  20%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  40%  { transform: scale(1) rotate(0deg); }
+  90%  { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+
+.bc-goal-burst {
+  animation: bc-goal-burst 2.5s var(--bc-ease-stage) forwards;
+}
+
+/* Champion ascend — trofeo + gradient gold */
+@keyframes bc-champion-ascend {
+  0%   { transform: translateY(60px) scale(0.7); opacity: 0; }
+  60%  { transform: translateY(-10px) scale(1.05); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.bc-champion-ascend {
+  animation: bc-champion-ascend 1.2s var(--bc-ease-stage) forwards;
+}
+
+/* Upset shake + flash rojo */
+@keyframes bc-upset-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+  20%, 40%, 60%, 80% { transform: translateX(8px); }
+}
+
+.bc-upset-shake {
+  animation: bc-upset-shake 0.6s var(--bc-ease-out);
+}
+
+/* Score reveal — flip vertical */
+@keyframes bc-score-reveal {
+  0%   { transform: rotateX(90deg); opacity: 0; }
+  100% { transform: rotateX(0); opacity: 1; }
+}
+
+.bc-score-reveal {
+  animation: bc-score-reveal var(--bc-dur-stage) var(--bc-ease-out) forwards;
+}
+
+/* Flash blanco para gol */
+@keyframes bc-flash-white {
+  0%   { background-color: rgba(255, 255, 255, 0); }
+  10%  { background-color: rgba(255, 255, 255, 0.7); }
+  100% { background-color: rgba(255, 255, 255, 0); }
+}
+
+.bc-flash-white {
+  animation: bc-flash-white 250ms ease-out forwards;
+}
+
+/* Trophy raise — para campeón */
+@keyframes bc-trophy-raise {
+  0%   { transform: translateY(40px) rotate(-10deg) scale(0.8); }
+  50%  { transform: translateY(-12px) rotate(8deg) scale(1.1); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+
+.bc-trophy-raise {
+  animation: bc-trophy-raise 1s var(--bc-ease-bounce) forwards;
+}
+
+/* Stagger entry — para listas de cards */
+@keyframes bc-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bc-stagger > * {
+  opacity: 0;
+  animation: bc-fade-up var(--bc-dur-stage) var(--bc-ease-stage) forwards;
+}
+.bc-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.bc-stagger > *:nth-child(2) { animation-delay: 80ms; }
+.bc-stagger > *:nth-child(3) { animation-delay: 160ms; }
+.bc-stagger > *:nth-child(4) { animation-delay: 240ms; }
+.bc-stagger > *:nth-child(5) { animation-delay: 320ms; }
+.bc-stagger > *:nth-child(6) { animation-delay: 400ms; }
+
+/* Live pulse refinado para broadcast */
+@keyframes bc-live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--bc-red-glow); }
+  50%      { opacity: 1; box-shadow: 0 0 0 8px transparent; }
+}
+
+.bc-live-pulse {
+  animation: bc-live-pulse 1.6s ease-in-out infinite;
+}
+
+/* Glow brand pulsante para campeón decidido */
+@keyframes bc-brand-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--bc-brand-glow); }
+  50%      { box-shadow: 0 0 0 24px transparent; }
+}
+
+.bc-brand-glow-pulse {
+  animation: bc-brand-glow 2.4s var(--bc-ease-stage) infinite;
+}
+
+/* === Confetti para overlays === */
+@keyframes bc-confetti-fall {
+  0%   { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translate3d(var(--bc-confetti-x, 0), 110vh, 0) rotate(720deg); opacity: 0; }
+}
+
+.bc-confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 14px;
+  pointer-events: none;
+  animation: bc-confetti-fall 3.5s linear forwards;
+}
+
+/* === Responsive breakpoints broadcast === */
+/* Stream-first: el viewport canónico es 1920×1080 a 100% zoom.
+   Mobile sigue funcionando pero no es el target principal. */
+@media (max-width: 768px) {
+  :root {
+    --bc-text-2xl:    28px;
+    --bc-text-score:  56px;
+    --bc-text-hero:   64px;
+  }
+}
