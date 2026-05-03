@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { Target, Trophy, Medal, MapPin } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Target, Trophy, Medal, MapPin, LayoutGrid, Focus } from 'lucide-react';
 import { getStadiumInfo, formatMatchDate } from '../data/schedule';
+import { useBroadcastMode } from '../hooks/useBroadcastMode';
+import KnockoutFocusView from './broadcast/KnockoutFocusView';
+
+const VIEW_STORAGE_KEY = 'wc2026_knockout_view';
 
 const PenaltySelector = ({ match, teams, onPenaltyWinner, onClose }) => {
   const homeTeam = teams.find(t => t.id === match.home);
@@ -196,6 +200,24 @@ const BracketMatch = ({ match, teams, onScoreChange, onPenaltyWinner }) => {
 };
 
 const KnockoutBracket = ({ matches, teams, onMatchUpdate, onPenaltyWinner }) => {
+  const { enabled: broadcastEnabled } = useBroadcastMode();
+
+  // Vista persistente: 'normal' | 'focus'. Si broadcast está ON y el usuario
+  // no eligió explícitamente, default a focus.
+  const [view, setView] = useState(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+      if (saved) return saved;
+    } catch { /* ignore */ }
+    return broadcastEnabled ? 'focus' : 'normal';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, view);
+    } catch { /* ignore */ }
+  }, [view]);
+
   if (!matches || matches.length === 0) return null;
 
   // Group matches by round
@@ -213,8 +235,60 @@ const KnockoutBracket = ({ matches, teams, onMatchUpdate, onPenaltyWinner }) => 
   const finalMatch = matches.find(m => m.id === 'Final');
   const champion = finalMatch?.winner ? teams.find(t => t.id === finalMatch.winner) : null;
 
+  // En modo focus delegamos al componente broadcast (focus card + minimap)
+  if (view === 'focus') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setView('normal')}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase transition-colors hover:bg-white/10"
+            style={{ color: 'var(--bc-fg-muted)', letterSpacing: '0.12em', border: '1px solid var(--bc-border)' }}
+            title="Cambiar a vista normal"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            Vista Normal
+          </button>
+          <span
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase"
+            style={{ background: 'var(--bc-brand)', color: 'var(--bc-bg-deep)', letterSpacing: '0.12em' }}
+          >
+            <Focus className="w-3.5 h-3.5" />
+            Match Focus
+          </span>
+        </div>
+        <KnockoutFocusView
+          matches={matches}
+          teams={teams}
+          onMatchUpdate={onMatchUpdate}
+          onPenaltyWinner={onPenaltyWinner}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
+      {/* View toggle */}
+      <div className="flex items-center justify-end gap-2">
+        <span
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase"
+          style={{ background: 'var(--bc-brand)', color: 'var(--bc-bg-deep)', letterSpacing: '0.12em' }}
+        >
+          <LayoutGrid className="w-3.5 h-3.5" />
+          Vista Normal
+        </span>
+        <button
+          onClick={() => setView('focus')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase transition-colors hover:bg-white/10"
+          style={{ color: 'var(--bc-fg-muted)', letterSpacing: '0.12em', border: '1px solid var(--bc-border)' }}
+          title="Cambiar a Match Focus (broadcast)"
+        >
+          <Focus className="w-3.5 h-3.5" />
+          Match Focus
+        </button>
+      </div>
+
       {/* Champion Display */}
       {champion && (
         <div className="bg-gradient-to-r from-yellow-600/20 via-yellow-400/20 to-yellow-600/20 rounded-xl p-6 border border-yellow-400/30 text-center animate-in fade-in zoom-in-95 duration-500">
