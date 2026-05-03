@@ -1,8 +1,21 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
-import { VENUES, GROUP_STAGE_DATES, KNOCKOUT_DATES, getMatchVenue, getMatchDate } from '../data/calendar';
+import { Calendar, MapPin, Users } from 'lucide-react';
+import { STADIUMS, getMatchSchedule, getStadiumInfo } from '../data/schedule';
 import { TEAMS } from '../data/teams';
 import { useI18n } from '../context/I18nContext';
+
+// Lista derivada para iterar en la vista por sedes
+const VENUES_LIST = Object.entries(STADIUMS).map(([id, info]) => ({ id, ...info, name: info.stadium }));
+
+// Resúmenes de fechas por ronda — calculados desde el schedule oficial
+const KNOCKOUT_ROUND_LABELS = [
+  { round: 'R32', label: 'Dieciseisavos', match: id => id?.startsWith('R32') },
+  { round: 'R16', label: 'Octavos', match: id => id?.startsWith('R16') },
+  { round: 'QF', label: 'Cuartos', match: id => id?.startsWith('QF') },
+  { round: 'SF', label: 'Semifinales', match: id => id?.startsWith('SF') },
+  { round: '3rdPlace', label: 'Tercer Puesto', match: id => id === '3rdPlace' },
+  { round: 'Final', label: 'Final', match: id => id === 'Final' },
+];
 
 const MatchCalendar = ({ groupMatches, knockoutMatches }) => {
   const { t } = useI18n();
@@ -11,19 +24,20 @@ const MatchCalendar = ({ groupMatches, knockoutMatches }) => {
 
   const getTeam = (id) => TEAMS.find(t => t.id === id);
 
+  const enrich = (m) => {
+    const schedule = getMatchSchedule(m.id);
+    const stadium = schedule?.venue ? getStadiumInfo(schedule.venue) : null;
+    return {
+      ...m,
+      date: m.date || schedule?.date || '2026-06-11',
+      kickoff: m.kickoff || schedule?.kickoff,
+      venue: stadium ? { id: schedule.venue, name: stadium.stadium, city: stadium.city, country: stadium.country, capacity: stadium.capacity } : null,
+    };
+  };
+
   const allMatches = [
-    ...groupMatches.map(m => ({
-      ...m,
-      stage: 'group',
-      date: getMatchDate(m.id),
-      venue: getMatchVenue(m.id),
-    })),
-    ...knockoutMatches.filter(m => m.home && m.away).map((m, i) => ({
-      ...m,
-      stage: 'knockout',
-      date: getMatchDate(m.id, i),
-      venue: VENUES[i % VENUES.length],
-    })),
+    ...groupMatches.map(m => ({ ...enrich(m), stage: 'group' })),
+    ...knockoutMatches.filter(m => m.home && m.away).map(m => ({ ...enrich(m), stage: 'knockout' })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   // Group by date
@@ -118,7 +132,7 @@ const MatchCalendar = ({ groupMatches, knockoutMatches }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {VENUES.map(venue => (
+          {VENUES_LIST.map(venue => (
             <div
               key={venue.id}
               className={`bg-[var(--color-bg-darker)] rounded-xl border overflow-hidden transition-all cursor-pointer ${
@@ -132,7 +146,7 @@ const MatchCalendar = ({ groupMatches, knockoutMatches }) => {
                   <h4 className="text-white font-bold text-sm truncate">{venue.name}</h4>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-xs">{venue.city}, {venue.country}</span>
+                  <span className="text-gray-400 text-xs">{venue.countryFlag} {venue.city}, {venue.country}</span>
                   <div className="flex items-center gap-1">
                     <Users className="w-3 h-3 text-gray-500" />
                     <span className="text-gray-500 text-xs">{venue.capacity.toLocaleString()}</span>
@@ -144,19 +158,24 @@ const MatchCalendar = ({ groupMatches, knockoutMatches }) => {
         </div>
       )}
 
-      {/* Knockout Dates Reference */}
+      {/* Knockout Dates Reference — derivado del schedule oficial */}
       <div className="bg-[var(--color-bg-darker)] rounded-xl p-4 border border-white/5">
         <h4 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
           <Calendar className="w-4 h-4" />
           Fechas Importantes
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {KNOCKOUT_DATES.map(k => (
-            <div key={k.round} className="bg-[var(--color-bg-darkest)] rounded-lg px-3 py-2">
-              <div className="text-[var(--color-primary)] text-xs font-bold uppercase">{k.round === 'R32' ? 'Dieciseisavos' : k.round === 'R16' ? 'Octavos' : k.round === 'QF' ? 'Cuartos' : k.round === 'SF' ? 'Semifinales' : k.round === '3rdPlace' ? 'Tercer Puesto' : k.round}</div>
-              <div className="text-gray-400 text-xs mt-1">{k.dates.map(formatDate).join(' - ')}</div>
-            </div>
-          ))}
+          {KNOCKOUT_ROUND_LABELS.map(k => {
+            const matches = knockoutMatches.filter(m => k.match(m.id));
+            const dates = [...new Set(matches.map(m => getMatchSchedule(m.id)?.date).filter(Boolean))].sort();
+            if (dates.length === 0) return null;
+            return (
+              <div key={k.round} className="bg-[var(--color-bg-darkest)] rounded-lg px-3 py-2">
+                <div className="text-[var(--color-primary)] text-xs font-bold uppercase">{k.label}</div>
+                <div className="text-gray-400 text-xs mt-1">{[dates[0], dates[dates.length - 1]].filter((v, i, a) => a.indexOf(v) === i).map(formatDate).join(' - ')}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
