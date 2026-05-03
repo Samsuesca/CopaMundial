@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { MapPin, Calendar } from 'lucide-react';
+import { getStadiumInfo, formatMatchDate } from '../data/schedule';
 
 const MatchInput = ({ match, homeTeam, awayTeam, onScoreChange }) => {
+  const stadium = match.venue ? getStadiumInfo(match.venue) : null;
+  const dateLabel = match.date ? formatMatchDate(match.date) : null;
   const [homeError, setHomeError] = useState(false);
   const [awayError, setAwayError] = useState(false);
 
@@ -28,13 +32,30 @@ const MatchInput = ({ match, homeTeam, awayTeam, onScoreChange }) => {
 
   return (
     <div className={`
-      flex items-center justify-between bg-[#000F24] p-3 rounded-lg border transition-all duration-300
+      bg-[#000F24] rounded-lg border transition-all duration-300
       ${isFinished
         ? 'border-l-2 border-l-[#00FF85] border-white/10'
         : 'border-white/5 hover:border-white/20'
       }
       ${isDraw ? 'bg-yellow-500/5' : ''}
     `}>
+      {(dateLabel || stadium) && (
+        <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-1 text-[10px] text-gray-500">
+          {dateLabel && (
+            <span className="flex items-center gap-1 shrink-0">
+              <Calendar className="w-3 h-3" />
+              <span>{dateLabel} {match.kickoff && `· ${match.kickoff}`}</span>
+            </span>
+          )}
+          {stadium && (
+            <span className="flex items-center gap-1 truncate min-w-0" title={`${stadium.stadium}, ${stadium.city}, ${stadium.country}`}>
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="truncate">{stadium.countryFlag} {stadium.city}</span>
+            </span>
+          )}
+        </div>
+      )}
+      <div className="flex items-center justify-between p-3 pt-2">
       {/* Home Team */}
       <div className="flex items-center gap-2 md:gap-3 w-[38%] min-w-0">
         <span className="text-lg md:text-xl flex-shrink-0">{homeTeam?.flag || '🏳️'}</span>
@@ -102,6 +123,7 @@ const MatchInput = ({ match, homeTeam, awayTeam, onScoreChange }) => {
           )}
         </div>
         <span className="text-lg md:text-xl flex-shrink-0">{awayTeam?.flag || '🏳️'}</span>
+      </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Target, Trophy, Medal } from 'lucide-react';
+import { Target, Trophy, Medal, MapPin } from 'lucide-react';
+import { getStadiumInfo, formatMatchDate } from '../data/schedule';
 
 const PenaltySelector = ({ match, teams, onPenaltyWinner, onClose }) => {
   const homeTeam = teams.find(t => t.id === match.home);
@@ -65,6 +66,8 @@ const BracketMatch = ({ match, teams, onScoreChange, onPenaltyWinner }) => {
   const [showPenaltySelector, setShowPenaltySelector] = useState(false);
   const homeTeam = teams.find(t => t.id === match.home);
   const awayTeam = teams.find(t => t.id === match.away);
+  const stadium = match.venue ? getStadiumInfo(match.venue) : null;
+  const dateLabel = match.date ? formatMatchDate(match.date) : null;
 
   // Determine if match is ready (both teams known)
   const isReady = match.home && match.away;
@@ -106,6 +109,22 @@ const BracketMatch = ({ match, teams, onScoreChange, onPenaltyWinner }) => {
             </span>
           )}
         </div>
+
+        {/* Date + Venue */}
+        {(dateLabel || stadium) && (
+          <div
+            className="px-3 py-1 text-[9px] text-gray-500 border-b border-white/5 flex items-center justify-between gap-2"
+            title={stadium ? `${stadium.stadium}, ${stadium.city}` : ''}
+          >
+            <span className="truncate">{dateLabel}{match.kickoff ? ` · ${match.kickoff}` : ''}</span>
+            {stadium && (
+              <span className="flex items-center gap-1 truncate min-w-0">
+                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                <span className="truncate">{stadium.countryFlag} {stadium.city}</span>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Home Team */}
         <div className={`flex items-center justify-between p-2 border-b border-white/5 transition-colors ${

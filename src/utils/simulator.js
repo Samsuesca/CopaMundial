@@ -1,3 +1,5 @@
+import { GROUP_SCHEDULE, KNOCKOUT_SCHEDULE } from '../data/schedule';
+
 export const calculateStandings = (groupMatches, groupTeams) => {
     const standings = groupTeams.map(teamId => ({
         id: teamId,
@@ -66,14 +68,19 @@ export const generateGroupMatches = (groups) => {
         ];
 
         pairings.forEach((pair, index) => {
+            const id = `G${group.id}-${index + 1}`;
+            const schedule = GROUP_SCHEDULE[id] || {};
             matches.push({
-                id: `G${group.id}-${index + 1}`,
+                id,
                 group: group.id,
                 home: teams[pair[0]],
                 away: teams[pair[1]],
                 homeScore: null,
                 awayScore: null,
-                finished: false
+                finished: false,
+                date: schedule.date || null,
+                kickoff: schedule.kickoff || null,
+                venue: schedule.venue || null,
             });
         });
     });
@@ -181,10 +188,22 @@ export const generateKnockoutBracket = (groups, standings, existingMatches = [])
     // 5. Generate Matches for all rounds
     const matches = [];
 
-    // Helper to get or create match
+    // Helper to get or create match (con datos de calendario)
     const getMatch = (id) => {
         const existing = existingMatches.find(m => m.id === id);
-        return existing || { id, home: null, away: null, homeScore: null, awayScore: null, winner: null };
+        if (existing) return existing;
+        const schedule = KNOCKOUT_SCHEDULE[id] || {};
+        return {
+            id,
+            home: null,
+            away: null,
+            homeScore: null,
+            awayScore: null,
+            winner: null,
+            date: schedule.date || null,
+            kickoff: schedule.kickoff || null,
+            venue: schedule.venue || null,
+        };
     };
 
     // Generate R32
