@@ -245,3 +245,89 @@
     --bc-text-hero:   64px;
   }
 }
+
+/* ====================================================================
+ * MODO BROADCAST — Activado vía useBroadcastMode (data-broadcast="true")
+ *
+ * Estos overrides se aplican sin tocar el markup de los componentes
+ * existentes. Se enganchan a las estructuras y clases que MatchInput,
+ * BracketMatch y CompactWidget ya producen.
+ * ==================================================================== */
+
+/* Hero/Headers — más imponentes en stream */
+[data-broadcast="true"] h1,
+[data-broadcast="true"] h2 {
+  font-family: var(--bc-font-display);
+  letter-spacing: 0.04em;
+  font-weight: 400;
+}
+
+/* Inputs de score — escalan a tipografía broadcast */
+[data-broadcast="true"] input[type="number"] {
+  font-family: var(--bc-font-mono);
+  font-weight: 800;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* MatchInput — el card del group stage */
+[data-broadcast="true"] .group .text-xs,
+[data-broadcast="true"] .group .text-sm {
+  /* No tocar — son metadata legítima */
+}
+
+/* Subir contraste de los nombres de equipos en los rows */
+[data-broadcast="true"] .text-gray-300 {
+  color: var(--bc-fg) !important;
+}
+[data-broadcast="true"] .text-gray-400 {
+  color: var(--bc-fg-muted) !important;
+}
+[data-broadcast="true"] .text-gray-500 {
+  color: var(--bc-fg-muted) !important;
+}
+
+/* Backgrounds — usar paleta H264 más contrastada */
+[data-broadcast="true"] .bg-\[\#000F24\] {
+  background-color: var(--bc-bg-deep) !important;
+}
+[data-broadcast="true"] .bg-\[\#001533\] {
+  background-color: var(--bc-bg-surface) !important;
+}
+[data-broadcast="true"] .bg-\[\#00204C\] {
+  background-color: var(--bc-bg-deep) !important;
+}
+
+/* Brand color refrescado vía CSS var ya existente — no requiere override */
+
+/* En Knockout Bracket: scores grandes para legibilidad TV */
+[data-broadcast="true"] [class*="bracket"] input[type="number"],
+[data-broadcast="true"] [role="tabpanel"]#panel-knockout input[type="number"] {
+  font-size: 24px;
+  width: 44px;
+  height: 36px;
+}
+
+/* Stream tab: el "Modo Broadcast" widget se vuelve protagonista */
+[data-broadcast="true"] #panel-stream {
+  /* layout ya es bueno, solo aumentar foco */
+}
+
+/* Indicador visible del modo (debug) */
+[data-broadcast="true"] body::after {
+  content: "BROADCAST MODE";
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  font-family: var(--bc-font-display);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--bc-brand);
+  background: rgba(0, 17, 42, 0.7);
+  padding: 4px 10px;
+  border: 1px solid var(--bc-brand);
+  border-radius: 4px;
+  z-index: 200;
+  pointer-events: none;
+}

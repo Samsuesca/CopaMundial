@@ -1,14 +1,16 @@
 import React from 'react';
-import { Trophy, Users, Swords, BarChart3, Menu, X, Radio, Calendar, Award, HelpCircle } from 'lucide-react';
+import { Trophy, Users, Swords, BarChart3, Menu, X, Radio, Calendar, Award, HelpCircle, Tv } from 'lucide-react';
 import { useState } from 'react';
 import ThemeToggle from './ThemeToggle';
 import LanguageSelector from './LanguageSelector';
 import SearchFilter from './SearchFilter';
 import { useI18n } from '../context/I18nContext';
+import { useBroadcastMode } from '../hooks/useBroadcastMode';
 
 const Header = ({ activeTab, onTabChange, stats, onShowAchievements, onShowShortcuts }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { t } = useI18n();
+  const { enabled: broadcastEnabled, toggle: toggleBroadcast } = useBroadcastMode();
 
   const tabs = [
     { id: 'playoffs', label: t('nav.playoffs'), icon: Users },
@@ -95,6 +97,19 @@ const Header = ({ activeTab, onTabChange, stats, onShowAchievements, onShowShort
             </div>
             <ThemeToggle />
             <LanguageSelector />
+            <button
+              onClick={toggleBroadcast}
+              className={`p-2 rounded-lg transition-colors hidden sm:block ${
+                broadcastEnabled
+                  ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] shadow-[0_0_12px_rgba(0,255,133,0.3)]'
+                  : 'hover:bg-white/10 text-gray-400'
+              }`}
+              title={broadcastEnabled ? 'Modo Broadcast activado' : 'Activar Modo Broadcast'}
+              aria-label="Toggle broadcast mode"
+              aria-pressed={broadcastEnabled}
+            >
+              <Tv className="w-4 h-4" />
+            </button>
             <button
               onClick={onShowAchievements}
               className="p-2 rounded-lg hover:bg-white/10 transition-colors hidden sm:block"
