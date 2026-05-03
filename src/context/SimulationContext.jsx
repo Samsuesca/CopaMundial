@@ -17,6 +17,56 @@ const initialState = {
   lastSaved: null,
 };
 
+// Propaga winners de R32 hacia rondas posteriores sin recomputar la base R32
+// (eso lo hace generateKnockoutBracket cuando cambian los standings).
+// Pure: clona todos los matches, los muta in-place dentro del clone, los devuelve.
+function propagateBracket(matches) {
+  const cloned = matches.map(m => ({ ...m }));
+  const byId = Object.fromEntries(cloned.map(m => [m.id, m]));
+
+  const setPair = (id, prev1Id, prev2Id) => {
+    const match = byId[id];
+    if (!match) return;
+    const newHome = byId[prev1Id]?.winner || null;
+    const newAway = byId[prev2Id]?.winner || null;
+    const teamsChanged = match.home !== newHome || match.away !== newAway;
+    match.home = newHome;
+    match.away = newAway;
+    if (teamsChanged || !newHome || !newAway) {
+      match.homeScore = null;
+      match.awayScore = null;
+      match.winner = null;
+      match.penaltyWinner = null;
+    }
+  };
+
+  for (let i = 1; i <= 8; i++) setPair(`R16-${i}`, `R32-${i * 2 - 1}`, `R32-${i * 2}`);
+  for (let i = 1; i <= 4; i++) setPair(`QF-${i}`, `R16-${i * 2 - 1}`, `R16-${i * 2}`);
+  for (let i = 1; i <= 2; i++) setPair(`SF-${i}`, `QF-${i * 2 - 1}`, `QF-${i * 2}`);
+  setPair('Final', 'SF-1', 'SF-2');
+
+  const third = byId['3rdPlace'];
+  if (third) {
+    const loserOf = (id) => {
+      const m = byId[id];
+      if (!m?.winner || !m.home || !m.away) return null;
+      return m.winner === m.home ? m.away : m.home;
+    };
+    const newHome = loserOf('SF-1');
+    const newAway = loserOf('SF-2');
+    const teamsChanged = third.home !== newHome || third.away !== newAway;
+    third.home = newHome;
+    third.away = newAway;
+    if (teamsChanged || !newHome || !newAway) {
+      third.homeScore = null;
+      third.awayScore = null;
+      third.winner = null;
+      third.penaltyWinner = null;
+    }
+  }
+  return cloned;
+}
+
 // Action Types
 const ACTIONS = {
   SET_PLAYOFF_WINNER: 'SET_PLAYOFF_WINNER',
@@ -58,48 +108,37 @@ function simulationReducer(state, action) {
         }),
       };
 
-    case ACTIONS.UPDATE_KNOCKOUT_MATCH:
-      return {
-        ...state,
-        knockoutMatches: state.knockoutMatches.map(m => {
-          if (m.id === action.payload.id) {
-            const updated = { ...m, [action.payload.field]: action.payload.value };
-            // Determine winner
-            if (updated.homeScore !== null && updated.awayScore !== null) {
-              if (updated.homeScore > updated.awayScore) {
-                updated.winner = updated.home;
-                updated.penaltyWinner = null;
-              } else if (updated.awayScore > updated.homeScore) {
-                updated.winner = updated.away;
-                updated.penaltyWinner = null;
-              } else {
-                // Draw - need penalties
-                updated.winner = updated.penaltyWinner || null;
-              }
-            } else {
-              updated.winner = null;
-              updated.penaltyWinner = null;
-            }
-            return updated;
+    case ACTIONS.UPDATE_KNOCKOUT_MATCH: {
+      const updatedMatches = state.knockoutMatches.map(m => {
+        if (m.id !== action.payload.id) return m;
+        const updated = { ...m, [action.payload.field]: action.payload.value };
+        if (updated.homeScore !== null && updated.awayScore !== null) {
+          if (updated.homeScore > updated.awayScore) {
+            updated.winner = updated.home;
+            updated.penaltyWinner = null;
+          } else if (updated.awayScore > updated.homeScore) {
+            updated.winner = updated.away;
+            updated.penaltyWinner = null;
+          } else {
+            updated.winner = updated.penaltyWinner || null;
           }
-          return m;
-        }),
-      };
+        } else {
+          updated.winner = null;
+          updated.penaltyWinner = null;
+        }
+        return updated;
+      });
+      return { ...state, knockoutMatches: propagateBracket(updatedMatches) };
+    }
 
-    case ACTIONS.SET_PENALTY_WINNER:
-      return {
-        ...state,
-        knockoutMatches: state.knockoutMatches.map(m => {
-          if (m.id === action.payload.matchId) {
-            return {
-              ...m,
-              penaltyWinner: action.payload.teamId,
-              winner: action.payload.teamId,
-            };
-          }
-          return m;
-        }),
-      };
+    case ACTIONS.SET_PENALTY_WINNER: {
+      const updatedMatches = state.knockoutMatches.map(m =>
+        m.id === action.payload.matchId
+          ? { ...m, penaltyWinner: action.payload.teamId, winner: action.payload.teamId }
+          : m
+      );
+      return { ...state, knockoutMatches: propagateBracket(updatedMatches) };
+    }
 
     case ACTIONS.SET_ACTIVE_TAB:
       return { ...state, activeTab: action.payload };
@@ -224,10 +263,18 @@ export function SimulationProvider({ children }) {
     return newStandings;
   }, [state.groupMatches, activeGroups]);
 
-  // Generate/update knockout bracket
+  // Regenerar el bracket cuando cambian los standings, pero sólo si los teams
+  // base (R32 home/away) realmente cambiaron — si no, evitamos el dispatch
+  // para no entrar en bucle con propagateBracket.
   useEffect(() => {
     const { matches } = generateKnockoutBracket(activeGroups, standings, state.knockoutMatches);
-    dispatch({ type: ACTIONS.SET_KNOCKOUT_MATCHES, payload: matches });
+    const needsUpdate = matches.some((m, i) => {
+      const old = state.knockoutMatches[i];
+      return !old || old.home !== m.home || old.away !== m.away;
+    });
+    if (needsUpdate) {
+      dispatch({ type: ACTIONS.SET_KNOCKOUT_MATCHES, payload: matches });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [standings]);
 
@@ -258,25 +305,14 @@ export function SimulationProvider({ children }) {
         payload: { id, field, value: value === '' ? null : parseInt(value) }
       }),
 
-    updateKnockoutMatch: (id, field, value) => {
+    updateKnockoutMatch: (id, field, value) =>
       dispatch({
         type: ACTIONS.UPDATE_KNOCKOUT_MATCH,
         payload: { id, field, value: value === '' ? null : parseInt(value) }
-      });
-      // Re-run generator to propagate winners
-      setTimeout(() => {
-        const { matches } = generateKnockoutBracket(activeGroups, standings, state.knockoutMatches);
-        dispatch({ type: ACTIONS.SET_KNOCKOUT_MATCHES, payload: matches });
-      }, 0);
-    },
+      }),
 
-    setPenaltyWinner: (matchId, teamId) => {
-      dispatch({ type: ACTIONS.SET_PENALTY_WINNER, payload: { matchId, teamId } });
-      setTimeout(() => {
-        const { matches } = generateKnockoutBracket(activeGroups, standings, state.knockoutMatches);
-        dispatch({ type: ACTIONS.SET_KNOCKOUT_MATCHES, payload: matches });
-      }, 0);
-    },
+    setPenaltyWinner: (matchId, teamId) =>
+      dispatch({ type: ACTIONS.SET_PENALTY_WINNER, payload: { matchId, teamId } }),
 
     setActiveTab: (tab) => dispatch({ type: ACTIONS.SET_ACTIVE_TAB, payload: tab }),
 
@@ -292,7 +328,7 @@ export function SimulationProvider({ children }) {
     resetSimulation: () => dispatch({ type: ACTIONS.RESET_SIMULATION }),
 
     setSimulationName: (name) => dispatch({ type: ACTIONS.SET_SIMULATION_NAME, payload: name }),
-  }), [activeGroups, standings, state.knockoutMatches]);
+  }), []);
 
   // Statistics
   const stats = useMemo(() => {
